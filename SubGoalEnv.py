@@ -17,7 +17,8 @@ class SubGoalEnv(gym.Env):
                  render_subactions=False, 
                  rew_type="",
                  number_of_one_hot_tasks=1, 
-                 one_hot_task_index=-1):
+                 one_hot_task_index=-1,
+                 euclidean_distance_limited=True):
         rew_types = ["","meta_world_rew","rew1","normal"]
         if rew_type not in rew_types:
             raise Exception('rew_type needs to be one of: ', rew_types)
@@ -181,6 +182,7 @@ class SubGoalEnv(gym.Env):
             max_it = 3
         # init total time spend in ppa with 0
         time_in_ppa = st = numbers_no_path_found = 0
+        distance_too_large = False
         # tell info the inital distance between gripper and goal
         distance_to_goal = np.linalg.norm(gripper_pos - sub_goal_pos)
         # if it did not reach completely do again
@@ -189,6 +191,9 @@ class SubGoalEnv(gym.Env):
                 # when obstacle env calculate sub_actions again after every step
                 gripper_pos = obs["observation"][:3]
                 step_size = 0.033
+                if self.euclidean_distance_limited and np.linalg.norm(gripper_pos - sub_goal_pos) > step_size * 15 * 3:
+                    distance_too_large = True
+                    break
                 obstacles = Obstacles(pretty_obs(obs["observation"]), self.env.dt)
                 # measure time spend in A* Search
                 st = time.time()
@@ -212,6 +217,9 @@ class SubGoalEnv(gym.Env):
                 # else just calculate it ones
                 gripper_pos = self.env.tcp_center
                 step_size = 0.01
+                if self.euclidean_distance_limited and np.linalg.norm(gripper_pos - sub_goal_pos) > step_size * 15 * 3:
+                    distance_too_large = True
+                    break
                 # measure the time spend in A* Search
                 st = time.time()
                 sub_actions = reach(current_pos=gripper_pos, 
@@ -239,6 +247,7 @@ class SubGoalEnv(gym.Env):
         # tell info how many times A* could not find a path
         info['number_no_A_path'] = numbers_no_path_found
         info['distance_to_goal'] = distance_to_goal
+        info['distance_too_large'] = distance_too_large
         # calculate reward
         reward, done = self._calculate_reward(reward, info,)
         self.number_steps += 1
