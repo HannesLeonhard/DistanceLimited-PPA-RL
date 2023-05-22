@@ -67,21 +67,45 @@ class RLPPAMonitor(VecEnvWrapper):
             self.results_writer = ResultsWriter(
                 filename, 
                 header={"t_start": self.t_start, "env_id": env_id}, 
-                extra_keys=("time_step", "taskid", "success", "time_ppa_ns", "no_A_path_times", "time_trunctuated", "distance_to_goal")
+                extra_keys=("time_step",
+                            "taskid",
+                            "success",
+                            "time_ppa_ns",
+                            "no_A_path_times",
+                            "time_trunctuated",
+                            "distance_to_goal",
+                            "initial_pos",
+                            "subgoal_pos")
             )
         elif not os.path.isfile(filename):
             # create new file
             self.results_writer = ResultsWriter(
                 filename, 
                 header={"t_start": self.t_start, "env_id": env_id}, 
-                extra_keys=("time_step", "taskid", "success", "time_ppa_ns", "no_A_path_times", "time_trunctuated", "distance_to_goal")
+                extra_keys=("time_step",
+                            "taskid",
+                            "success",
+                            "time_ppa_ns",
+                            "no_A_path_times",
+                            "time_trunctuated",
+                            "distance_to_goal",
+                            "initial_pos",
+                            "subgoal_pos")
             )
         else:
             # append to existing logging file
             self.results_writer = ResultsWriter(
                 filename, 
                 header={"t_start": self.t_start, "env_id": env_id}, 
-                extra_keys=("time_step", "taskid", "success", "time_ppa_ns", "no_A_path_times", "time_trunctuated", "distance_to_goal"),
+                extra_keys=("time_step",
+                            "taskid",
+                            "success",
+                            "time_ppa_ns",
+                            "no_A_path_times",
+                            "time_trunctuated",
+                            "distance_to_goal",
+                            "initial_pos",
+                            "subgoal_pos"),
                 override_existing=False
             )
         self.info_keywords = info_keywords
@@ -113,9 +137,9 @@ class RLPPAMonitor(VecEnvWrapper):
                 episode_return = self.episode_returns[i]
                 episode_length = self.episode_lengths[i]
                 if self.multi_env:
-                    print("obs",pretty_obs(obs[i]))
+                    #print("obs", pretty_obs(obs[i]))
                     task_id = onehot_to_task_id(obs[i][-self.num_tasks:])
-                    print("task_id", task_id, " one_hot: ",pretty_obs(obs[i])["one_hot_task"])
+                    #print("task_id", task_id, " one_hot: ", pretty_obs(obs[i])["one_hot_task"])
                     episode_info = {"r": episode_return, 
                                     "l": episode_length, 
                                     "t": round(time.time() - self.t_start, 6),
@@ -125,8 +149,10 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "time_ppa_ns": info['time_in_ppa'],
                                     "no_A_path_times": info['number_no_A_path'],
                                     "time_trunctuated": info["TimeLimit.truncated"],
-                                    "distance_to_goal": info['distance_to_goal']}
-                else :
+                                    "distance_to_goal": info['distance_to_goal'],
+                                    "initial_pos": info['initial_pos'],
+                                    "subgoal_pos": info['subgoal_pos']}
+                else:
                     episode_info = {"r": episode_return, 
                                     "l": episode_length, 
                                     "t": round(time.time() - self.t_start, 6),
@@ -135,7 +161,9 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "time_ppa_ns": info['time_in_ppa'],
                                     "no_A_path_times": info['number_no_A_path'],
                                     "time_trunctuated": info["TimeLimit.truncated"],
-                                    "distance_to_goal": info['distance_to_goal']}
+                                    "distance_to_goal": info['distance_to_goal'],
+                                    "initial_pos": info['initial_pos'],
+                                    "subgoal_pos": info['subgoal_pos']}
                 # print(info)
                 for key in self.info_keywords:
                     episode_info[key] = info[key]

@@ -13,11 +13,11 @@ def train():
     TIMESTEPS = 256
     print("started at {}".format(time.localtime(time.time())))
     env = SubGoalEnv("pick-place-v2", rew_type="rew1")
-    env_vec = SubprocVecEnv([lambda: env, lambda: env, lambda: env, lambda: env,
-                             lambda: env, lambda: env, lambda: env, lambda: env,
-                             lambda: env, lambda: env, lambda: env, lambda: env,
-                             lambda: env, lambda: env, lambda: env, lambda: env,
-                             lambda: env, lambda: env, lambda: env, lambda: env,
+    env_vec = SubprocVecEnv([lambda: env#, lambda: env, lambda: env, lambda: env,
+                             #lambda: env, lambda: env, lambda: env, lambda: env,
+                             #lambda: env, lambda: env, lambda: env, lambda: env,
+                             #lambda: env, lambda: env, lambda: env, lambda: env,
+                             #lambda: env, lambda: env, lambda: env, lambda: env,
                              #lambda: env, lambda: env, lambda: env, lambda: env,
                              # lambda: env, lambda: env, lambda: env, lambda: env,
                              # lambda: env, lambda: env, lambda: env, lambda: env,

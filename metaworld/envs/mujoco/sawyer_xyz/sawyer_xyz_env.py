@@ -24,6 +24,12 @@ class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
         self.reset_mocap_welds()
 
     def get_endeff_pos(self):
+        """
+        xyz pos of the hand as copy
+
+        Returns:
+             [float]: list of 3 elements
+        """
         return self.data.get_body_xpos('hand').copy()
 
     @property
@@ -65,6 +71,7 @@ class SawyerMocapBase(MujocoEnv, metaclass=abc.ABCMeta):
         self.model = mujoco_py.load_model_from_mjb(state['mjb'])
         self.sim = mujoco_py.MjSim(self.model)
         self.data = self.sim.data
+        # self.sim.model.site_pos
         self.set_env_state(state['env_state'])
 
     def reset_mocap_welds(self):
@@ -83,7 +90,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         np.array([-0.525, .348, -.0525]),
         np.array([+0.525, 1.025, .7]), dtype=np.float32
     )
-    max_path_length = 500000 #changed
+    max_path_length = 500000  # changed
 
     TARGET_RADIUS = 0.05
 
@@ -95,7 +102,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             hand_high=(0.2, 0.75, 0.3),
             mocap_low=None,
             mocap_high=None,
-            action_scale=1./100,
+            action_scale=1. / 100,
             action_rot_scale=1.,
     ):
         super().__init__(model_name, frame_skip=frame_skip)
@@ -167,7 +174,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         self._set_task_inner(**data)
         self.reset()
 
-    def set_xyz_action(self, action):
+    def set_xyz_action(self, action) -> object:
         action = np.clip(action, -1, 1)
         pos_delta = action * self.action_scale
         new_mocap_pos = self.data.mocap_pos + pos_delta[None]
@@ -346,12 +353,12 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
                 np.hstack((pos, quat))
                 for pos, quat in zip(obj_pos_split, obj_quat_split)
             ])
-            assert(len(obs_obj_padded) in self._obs_obj_possible_lens)
+            assert (len(obs_obj_padded) in self._obs_obj_possible_lens)
             return np.hstack((pos_hand, gripper_distance_apart, obs_obj_padded))
         else:
             # is a v1 environment
             obs_obj_padded[:len(obj_pos)] = obj_pos
-            assert(len(obs_obj_padded) in self._obs_obj_possible_lens)
+            assert (len(obs_obj_padded) in self._obs_obj_possible_lens)
             return np.hstack((pos_hand, obs_obj_padded))
 
     def _get_obs(self):
@@ -396,9 +403,11 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         gripper_high = +1.
 
         return Box(
-            np.hstack((self._HAND_SPACE.low, gripper_low, obj_low, self._HAND_SPACE.low, gripper_low, obj_low, goal_low)),
-            np.hstack((self._HAND_SPACE.high, gripper_high, obj_high, self._HAND_SPACE.high, gripper_high, obj_high, goal_high))
-            ,dtype = np.float32
+            np.hstack(
+                (self._HAND_SPACE.low, gripper_low, obj_low, self._HAND_SPACE.low, gripper_low, obj_low, goal_low)),
+            np.hstack((self._HAND_SPACE.high, gripper_high, obj_high, self._HAND_SPACE.high, gripper_high, obj_high,
+                       goal_high))
+            , dtype=np.float32
         ) if self.isV2 else Box(
             np.hstack((self._HAND_SPACE.low, obj_low, goal_low)),
             np.hstack((self._HAND_SPACE.high, obj_high, goal_high))
@@ -439,8 +448,53 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             # functionality and end up returning the same sort of tuple that
             # this does
             return self._last_stable_obs
-
+        # calculates reward, and populates info dict with metrics
         reward, info = self.evaluate_state(self._last_stable_obs, action)
+        return self._last_stable_obs, reward, False, info
+
+    @_assert_task_is_set
+    def teleport(self, action, position):
+        """
+        Teleports the hand to the given position
+        """
+        # self.set_xyz_action(action[:3])
+        # teleport to position
+        self._teleport_hand(position)
+        # self.do_simulation([action[-1], -action[-1]])
+        self.curr_path_length += 1
+
+        # Running the simulator can sometimes mess up site positions, so
+        # re-position them here to make sure they're accurate
+        for site in self._target_site_config:
+            self._set_pos_site(*site)
+
+        if self._did_see_sim_exception:
+            return (
+                self._last_stable_obs,  # observation just before going unstable
+                0.0,  # reward (penalize for causing instability)
+                False,  # termination flag always False
+                {  # info
+                    'success': False,
+                    'near_object': 0.0,
+                    'grasp_success': False,
+                    'grasp_reward': 0.0,
+                    'in_place_reward': 0.0,
+                    'obj_to_target': 0.0,
+                    'unscaled_reward': 0.0,
+                }
+            )
+
+        self._last_stable_obs = self._get_obs()
+        if not self.isV2:
+            # v1 environments expect this superclass step() to return only the
+            # most recent observation. they override the rest of the
+            # functionality and end up returning the same sort of tuple that
+            # this does
+            return self._last_stable_obs
+        # calculates reward, and populates info dict with metrics
+        reward, info = self.evaluate_state(self._last_stable_obs, action)
+        print("returning from teleport now obs {}\nreward: {}\ninfo: {}".format(self.pretty_obs(self._last_stable_obs),
+                                                                                reward, info))
         return self._last_stable_obs, reward, False, info
 
     def evaluate_state(self, obs, action):
@@ -468,6 +522,19 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             self.data.set_mocap_quat('mocap', np.array([1, 0, 1, 0]))
             self.do_simulation([-1, 1], self.frame_skip)
         self.init_tcp = self.tcp_center
+
+    def _teleport_hand(self, hand_pos: np.array, max_steps=50):
+        """
+        Teleports the hand by use of the mocap position and quaternion
+        """
+        for _ in range(max_steps):
+            # sets the position of the hand
+            self.data.set_mocap_pos('mocap', hand_pos)
+            # sets the quaternion of the hand
+            self.data.set_mocap_quat('mocap', np.array([1, 0, 1, 0]))
+            self.do_simulation([-1, 1], self.frame_skip)
+            if np.linalg.norm(hand_pos, self.data.get_mocap_pos('mocap')) < 0.005:
+                break  # we are close enough and can finish our teleportation
 
     def _get_state_rand_vec(self):
         if self._freeze_rand_vec:

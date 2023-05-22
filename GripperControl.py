@@ -12,6 +12,16 @@ def reach(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, 
                                         env_dimension=env_dimension)
     return trajectory_planner.a_star_search()
 
+def teleport(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size= 0.01) -> [[float]]:
+    trajectory_planner = FindTrajectory(current_pos,
+                                        goal_pos,
+                                        step_size=step_size,
+                                        obstacles=obstacles,
+                                        safety_margin=0.045,
+                                        gripper_closed=gripper_closed,
+                                        env_dimension=env_dimension)
+    return trajectory_planner.teleporting_search()
+
 
 class Obstacles:
     def __init__(self, obs: dict, dt: float):
@@ -110,7 +120,6 @@ class Node:
 
 
 class FindTrajectory:
-
     def __init__(self, start_pos, goal_position, step_size, obstacles: Obstacles,
                  safety_margin, gripper_closed,env_dimension):
         self.start_pos = start_pos
@@ -166,6 +175,37 @@ class FindTrajectory:
                 action.append(-1)
             actions.append([round(i, 5) for i in action])
         return actions
+
+    def trajectory_to_acions_teleport(self, nodes: [Node]) -> [[float]]:
+        optimal_trajectory = nodes
+        actions = []
+        while len(optimal_trajectory) != 1:
+            cur = optimal_trajectory.pop(0).pos
+            next_node_pos = optimal_trajectory[0].pos
+            action = [(next_node_pos[0] - cur[0]), (next_node_pos[1] - cur[1]), (next_node_pos[2] - cur[2])]
+            if self.gripper_closed:
+                action.append(1)
+            else:
+                action.append(-1)
+            actions.append([round(i, 5) for i in action])
+        return actions
+
+    def teleporting_search(self):
+      # Create start  node
+        start_node = Node(None, self.start_pos)
+        self.safety_margin = self.og_safety_margin
+        if self.obstacles and self.obstacles.collides_at_time_step(start_node.pos, 0, self.safety_margin):
+            self.safety_margin = 0.02
+        # create subgoal_pos as node
+        goal_node = Node(start_node, self.goal_pos)
+        if self.node_is_reachable(goal_node) and \
+          (self.obstacles is None
+          or not self.obstacles.collides_at_time_step(goal_node.pos, goal_node.depth, self.safety_margin)):
+          # we could find a path so return it
+          path = [goal_node, start_node]
+          return self.trajectory_to_acions_teleport(path[::-1])  # Return reversed path
+        else:
+          return []
 
     def a_star_search(self):
         # Create start  node
