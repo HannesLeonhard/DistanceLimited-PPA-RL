@@ -270,8 +270,6 @@ class SubGoalEnv(gym.Env):
                     for i, a in enumerate(sub_actions):
                         obs, reward, done, info = self.env.step(a)
                         self.func_render_subactions()
-                        print("goal pos is {} with gripper pos {} before {} and it took us {}"
-                              .format(sub_goal_pos, gripper_pos, original_pos, sub_actions))
                 else:
                     st = time.time()
                     sub_actions = reach(current_pos=gripper_pos,

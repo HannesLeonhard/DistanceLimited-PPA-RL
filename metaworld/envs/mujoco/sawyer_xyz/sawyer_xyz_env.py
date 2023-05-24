@@ -496,8 +496,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             return self._last_stable_obs
         # calculates reward, and populates info dict with metrics
         reward, info = self.evaluate_state(self._last_stable_obs, action)
-        print("returning from teleport now obs {}\nreward: {}\ninfo: {}".format(self.pretty_obs(self._last_stable_obs),
-                                                                                reward, info))
+
         return self._last_stable_obs, reward, False, info
 
     def evaluate_state(self, obs, action):
