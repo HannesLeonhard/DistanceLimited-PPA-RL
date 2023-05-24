@@ -75,7 +75,8 @@ class RLPPAMonitor(VecEnvWrapper):
                             "time_trunctuated",
                             "distance_to_goal",
                             "initial_pos",
-                            "subgoal_pos")
+                            "subgoal_pos",
+                            'action_is_goal')
             )
         elif not os.path.isfile(filename):
             # create new file
@@ -90,7 +91,8 @@ class RLPPAMonitor(VecEnvWrapper):
                             "time_trunctuated",
                             "distance_to_goal",
                             "initial_pos",
-                            "subgoal_pos")
+                            "subgoal_pos",
+                            'action_is_goal')
             )
         else:
             # append to existing logging file
@@ -105,7 +107,8 @@ class RLPPAMonitor(VecEnvWrapper):
                             "time_trunctuated",
                             "distance_to_goal",
                             "initial_pos",
-                            "subgoal_pos"),
+                            "subgoal_pos",
+                            'action_is_goal'),
                 override_existing=False
             )
         self.info_keywords = info_keywords
@@ -151,7 +154,8 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "time_trunctuated": info["TimeLimit.truncated"],
                                     "distance_to_goal": info['distance_to_goal'],
                                     "initial_pos": info['initial_pos'],
-                                    "subgoal_pos": info['subgoal_pos']}
+                                    "subgoal_pos": info['subgoal_pos'],
+                                    'action_is_goal': info['action_is_goal']}
                 else:
                     episode_info = {"r": episode_return, 
                                     "l": episode_length, 
@@ -163,7 +167,8 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "time_trunctuated": info["TimeLimit.truncated"],
                                     "distance_to_goal": info['distance_to_goal'],
                                     "initial_pos": info['initial_pos'],
-                                    "subgoal_pos": info['subgoal_pos']}
+                                    "subgoal_pos": info['subgoal_pos'],
+                                    'action_is_goal': info['action_is_goal']}
                 # print(info)
                 for key in self.info_keywords:
                     episode_info[key] = info[key]

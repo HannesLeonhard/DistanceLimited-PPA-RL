@@ -156,6 +156,15 @@ class SubGoalEnv(gym.Env):
             self.env.render()
             time.sleep(0.05)
 
+    def action_is_target_pos(self, subgoal_pos):
+        # compute if a given action corresponds to the target position
+        target_pos = self.env.getTargetPos().copy()  # get target pos from env
+        target_to_obj = (subgoal_pos - target_pos) * np.array([2., 2., 1.])  # scale to emphasize x, y axis
+        target_to_obj = np.linalg.norm(target_to_obj)
+        if target_to_obj < 0.05:
+            return 1
+        return 0
+
     def step(self, action):
         # get kind of action: "hold"=0, "grasp"=1
         action_type = 0
@@ -166,9 +175,10 @@ class SubGoalEnv(gym.Env):
 
         # transform action into coordinates
         sub_goal_pos = self.scale_action_to_env_pos(action)
-
         # create initial obs,
         obs, reward, done, info = self.env.step([0, 0, 0, 0])
+        # calculate if we want to teleport to the goal pos
+        action_is_goal = self.action_is_target_pos(sub_goal_pos)
         # open gripper if picking,
         if action_type == 1:
             # actions need to be performed several times, because otherwise we can't guarantee that the gripper is open
@@ -191,7 +201,8 @@ class SubGoalEnv(gym.Env):
         initial_pos = gripper_pos
         # if it did not reach completely do again
         original_pos = gripper_pos
-        while np.linalg.norm(gripper_pos - sub_goal_pos) > 0.005 and max_it > 0: # changed this as teleporting looses accuracy
+        while np.linalg.norm(
+                gripper_pos - sub_goal_pos) > 0.005 and max_it > 0:  # changed this as teleporting looses accuracy
             if self.env_name == "obstacle_env":
                 # when obstacle env calculate sub_actions again after every step
                 gripper_pos = obs["observation"][:3]
@@ -238,7 +249,7 @@ class SubGoalEnv(gym.Env):
                 # if dist > step_size * 15 (due to setting max node depth to 15) then do not use reach
                 # else just calculate it ones
                 # changed this as teleporting looses accuracy and we would unnecessary teleport to the same place multiple times
-                gripper_pos = obs["observation"][:3] # gripper_pos = self.env.tcp_center
+                gripper_pos = obs["observation"][:3]  # gripper_pos = self.env.tcp_center
                 step_size = 0.01
                 # measure the time spend in A* Search
                 if self.teleporting:
@@ -277,7 +288,7 @@ class SubGoalEnv(gym.Env):
                     for i, a in enumerate(sub_actions):
                         obs, reward, done, info = self.env.step(a)
                         self.func_render_subactions()
-                gripper_pos = obs["observation"][:3] # gripper_pos = self.env.tcp_center
+                gripper_pos = obs["observation"][:3]  # gripper_pos = self.env.tcp_center
 
             max_it -= 1
         # close gripper if pick action
@@ -292,6 +303,7 @@ class SubGoalEnv(gym.Env):
         info['distance_to_goal'] = distance_to_goal
         info['initial_pos'] = initial_pos
         info['subgoal_pos'] = sub_goal_pos
+        info['action_is_goal'] = action_is_goal
         # calculate reward
         reward, done = self._calculate_reward(reward, info, )
         self.number_steps += 1

@@ -2,17 +2,18 @@ from typing import Tuple
 import numpy as np
 
 
-def reach(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size= 0.01) -> [[float]]:
-    trajectory_planner = FindTrajectory(current_pos, 
+def reach(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size=0.01) -> [[float]]:
+    trajectory_planner = FindTrajectory(current_pos,
                                         goal_pos,
-                                        step_size=step_size, 
-                                        obstacles=obstacles, 
+                                        step_size=step_size,
+                                        obstacles=obstacles,
                                         safety_margin=0.045,
-                                        gripper_closed=gripper_closed, 
+                                        gripper_closed=gripper_closed,
                                         env_dimension=env_dimension)
     return trajectory_planner.a_star_search()
 
-def teleport(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size= 0.01) -> [[float]]:
+
+def teleport(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size=0.01) -> [[float]]:
     trajectory_planner = FindTrajectory(current_pos,
                                         goal_pos,
                                         step_size=step_size,
@@ -27,8 +28,8 @@ class Obstacles:
     def __init__(self, obs: dict, dt: float):
         self.obstacles = []
         # change depending on number of obstacles ["obstacle1", "obstacle2", "obstacle3"]
-        for o in ["obstacle1", "obstacle2",]:
-            self.obstacles.append(Obstacle(pos=obs[o][:3], size=obs[o][3:6], vel=obs[o][6], direction=[1,0,0], dt=dt))
+        for o in ["obstacle1", "obstacle2", ]:
+            self.obstacles.append(Obstacle(pos=obs[o][:3], size=obs[o][3:6], vel=obs[o][6], direction=[1, 0, 0], dt=dt))
         self.obstacles[1].vel *= -1
 
     def __str__(self):
@@ -121,7 +122,7 @@ class Node:
 
 class FindTrajectory:
     def __init__(self, start_pos, goal_position, step_size, obstacles: Obstacles,
-                 safety_margin, gripper_closed,env_dimension):
+                 safety_margin, gripper_closed, env_dimension):
         self.start_pos = start_pos
         self.goal_pos = goal_position
         self.step_size = step_size
@@ -191,7 +192,7 @@ class FindTrajectory:
         return actions
 
     def teleporting_search(self):
-      # Create start  node
+        # Create start  node
         start_node = Node(None, self.start_pos)
         self.safety_margin = self.og_safety_margin
         if self.obstacles and self.obstacles.collides_at_time_step(start_node.pos, 0, self.safety_margin):
@@ -199,13 +200,13 @@ class FindTrajectory:
         # create subgoal_pos as node
         goal_node = Node(start_node, self.goal_pos)
         if self.node_is_reachable(goal_node) and \
-          (self.obstacles is None
-          or not self.obstacles.collides_at_time_step(goal_node.pos, goal_node.depth, self.safety_margin)):
-          # we could find a path so return it
-          path = [goal_node, start_node]
-          return self.trajectory_to_acions_teleport(path[::-1])  # Return reversed path
+                (self.obstacles is None
+                 or not self.obstacles.collides_at_time_step(goal_node.pos, goal_node.depth, self.safety_margin)):
+            # we could find a path so return it
+            path = [goal_node, start_node]
+            return self.trajectory_to_acions_teleport(path[::-1])  # Return reversed path
         else:
-          return []
+            return []
 
     def a_star_search(self):
         # Create start  node

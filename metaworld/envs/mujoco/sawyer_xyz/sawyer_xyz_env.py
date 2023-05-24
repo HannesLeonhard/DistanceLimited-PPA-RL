@@ -160,6 +160,9 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
         # Doesn't absorb "extra" kwargs, to ensure nothing's missed.
         pass
 
+    def getTargetPos(self):
+        return self._target_pos
+
     def set_task(self, task):
         self._set_task_called = True
         data = pickle.loads(task.data)
