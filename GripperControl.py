@@ -13,14 +13,15 @@ def reach(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, 
     return trajectory_planner.a_star_search()
 
 
-def teleport(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size=0.01) -> [[float]]:
+def teleport(current_pos, goal_pos, gripper_closed, env_dimension, obstacles=None, step_size=0.01, distance_pruned=False) -> [[float]]:
     trajectory_planner = FindTrajectory(current_pos,
                                         goal_pos,
                                         step_size=step_size,
                                         obstacles=obstacles,
                                         safety_margin=0.045,
                                         gripper_closed=gripper_closed,
-                                        env_dimension=env_dimension)
+                                        env_dimension=env_dimension,
+                                        distance_pruned=distance_pruned)
     return trajectory_planner.teleporting_search()
 
 
@@ -46,8 +47,12 @@ class Obstacles:
 
 
 class Obstacle:
-    def __init__(self, pos: Tuple[float, float, float], size: Tuple[float, float, float],
-                 vel: float, direction: [int], dt: float):
+    def __init__(self,
+                 pos: Tuple[float, float, float],
+                 size: Tuple[float, float, float],
+                 vel: float,
+                 direction: [int],
+                 dt: float):
         self.pos = pos
         self.size = size
         self.vel = vel  # velocity
@@ -121,8 +126,9 @@ class Node:
 
 
 class FindTrajectory:
+    # TODO: Init this object multiple times can create unnecessary overhead
     def __init__(self, start_pos, goal_position, step_size, obstacles: Obstacles,
-                 safety_margin, gripper_closed, env_dimension):
+                 safety_margin, gripper_closed, env_dimension, distance_pruned):
         self.start_pos = start_pos
         self.goal_pos = goal_position
         self.step_size = step_size
@@ -131,6 +137,7 @@ class FindTrajectory:
         self.safety_margin = safety_margin
         self.gripper_closed = gripper_closed
         self.env_dimension = env_dimension
+        self.distance_pruned = distance_pruned
 
     def is_nearest_node_to_goal(self, node: Node) -> bool:
         return np.linalg.norm(np.asarray(node.pos) - np.asarray(self.goal_pos), axis=-1) < (self.step_size - 0.00)
@@ -184,6 +191,9 @@ class FindTrajectory:
             cur = optimal_trajectory.pop(0).pos
             next_node_pos = optimal_trajectory[0].pos
             action = [(next_node_pos[0] - cur[0]), (next_node_pos[1] - cur[1]), (next_node_pos[2] - cur[2])]
+            # limits the action to the max step size
+            if np.linalg.norm(action) > (self.step_size * 16) and self.distance_pruned:
+                action = [((self.step_size * 16) / np.linalg.norm(action)) * i for i in action]
             if self.gripper_closed:
                 action.append(1)
             else:

@@ -535,7 +535,7 @@ class SawyerXYZEnv(SawyerMocapBase, metaclass=abc.ABCMeta):
             # sets the quaternion of the hand
             self.data.set_mocap_quat('mocap', np.array([1, 0, 1, 0]))
             self.do_simulation([-1, 1], self.frame_skip)
-            if np.linalg.norm(hand_pos, self.data.get_mocap_pos('mocap')) < 0.005:
+            if np.linalg.norm(hand_pos - self.data.get_mocap_pos('mocap')) < 0.005:
                 break  # we are close enough and can finish our teleportation
 
     def _get_state_rand_vec(self):
