@@ -1,7 +1,7 @@
 import numpy as np
-import gym
+import gymnasium
 import metaworld
-from gym.spaces import Box
+from gymnasium.spaces import Box
 from ObstacleEnviroments.fetch.pick_dyn_obstacles2 import FetchPickDynObstaclesEnv2
 
 
@@ -10,7 +10,7 @@ def pretty_obs(obs):
             'goal': obs[36:39], }  # 'last_measurements': obs[18:36]}
 
 
-class NormalStepEnv(gym.Env):
+class NormalStepEnv(gymnasium.Env):
     def render(self, mode="human"):
         self.env.render()
 

@@ -1,5 +1,5 @@
 import os
-import gym
+import gymnasium
 from gymnasium_robotics.envs.fetch import fetch_env
 import numpy as np
 import copy

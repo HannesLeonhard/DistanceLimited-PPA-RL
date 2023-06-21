@@ -1,14 +1,14 @@
 import time
 from typing import Tuple, Dict
 import numpy as np
-import gym
 import metaworld
-from gym.spaces import Box
+import gymnasium
+from gymnasium.spaces import Box
 from GripperControl import reach, Obstacles, teleport
 from ObstacleEnviroments.fetch.pick_dyn_obstacles2 import FetchPickDynObstaclesEnv2, pretty_obs
 
 
-class SubGoalEnv(gym.Env):
+class SubGoalEnv(gymnasium.Env):
     """
     Created the custom subgoal environment
     """

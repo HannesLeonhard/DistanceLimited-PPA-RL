@@ -1,5 +1,5 @@
 import os
-import gym
+import gymnasium
 from gymnasium_robotics.envs.fetch import fetch_env
 import numpy as np
 from gymnasium_robotics.utils import rotations
@@ -15,7 +15,7 @@ def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
-class FetchPickDynLabyrinthEnv(robot_env.BaseRobotEnv, gym.utils.EzPickle):
+class FetchPickDynLabyrinthEnv(robot_env.BaseRobotEnv, gymnasium.utils.EzPickle):
     def __init__(self, reward_type='sparse'):
 
         """Initializes a new Fetch environment.
@@ -69,7 +69,7 @@ class FetchPickDynLabyrinthEnv(robot_env.BaseRobotEnv, gym.utils.EzPickle):
             model_path=model_path, n_substeps=n_substeps, n_actions=4,
             initial_qpos=initial_qpos)
 
-        gym.utils.EzPickle.__init__(self)
+        gymnasium.utils.EzPickle.__init__(self)
         self._setup_obstacles()
 
     def _setup_obstacles(self):

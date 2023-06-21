@@ -3,10 +3,10 @@ import warnings
 
 import glfw
 from gym import error
-from gym.utils import seeding
+from gymnasium.utils import seeding
 import numpy as np
 from os import path
-import gym
+import gymnasium
 
 try:
     import mujoco_py
@@ -29,7 +29,7 @@ def _assert_task_is_set(func):
 DEFAULT_SIZE = 500
 
 
-class MujocoEnv(gym.Env, abc.ABC):
+class MujocoEnv(gymnasium.Env, abc.ABC):
     """
     This is a simplified version of the gym MujocoEnv class.
 

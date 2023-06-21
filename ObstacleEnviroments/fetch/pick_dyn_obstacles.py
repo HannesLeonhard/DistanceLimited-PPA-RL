@@ -1,5 +1,5 @@
 import os
-import gym
+import gymnasium
 from gymnasium_robotics.envs.fetch import fetch_env
 import numpy as np
 import copy
@@ -25,7 +25,7 @@ def pretty_obs(obs):
             'obstacle2': obs[15:22], "goal": obs[29:32]}
 
 
-class FetchPickDynObstaclesEnv(robot_env.BaseRobotEnv, gym.utils.EzPickle):
+class FetchPickDynObstaclesEnv(robot_env.BaseRobotEnv, gymnasium.utils.EzPickle):
     def __init__(self, reward_type='sparse', n_substeps=20):
 
         """Initializes a new Fetch environment.
@@ -86,7 +86,7 @@ class FetchPickDynObstaclesEnv(robot_env.BaseRobotEnv, gym.utils.EzPickle):
             model_path=model_path, n_substeps=n_substeps, n_actions=4,
             initial_qpos=initial_qpos)
 
-        gym.utils.EzPickle.__init__(self)
+        gymnasium.utils.EzPickle.__init__(self)
         self._setup_dyn_obstacles()
 
     def _setup_dyn_obstacles(self):

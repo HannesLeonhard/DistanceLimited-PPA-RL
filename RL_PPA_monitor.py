@@ -2,6 +2,7 @@ import time
 import warnings
 from typing import Optional, Tuple
 import os
+import csv
 
 import numpy as np
 from SubGoalEnv import pretty_obs
@@ -56,6 +57,8 @@ class RLPPAMonitor(VecEnvWrapper):
         self.episode_lengths = None
         self.episode_count = 0
         self.t_start = time.time()
+        self.filename = filename
+        self.total_time_subgoal = 0
 
         env_id = None
         if hasattr(venv, "spec") and venv.spec is not None:
@@ -65,8 +68,8 @@ class RLPPAMonitor(VecEnvWrapper):
             self.results_writer = None
 
             self.results_writer = ResultsWriter(
-                filename, 
-                header={"t_start": self.t_start, "env_id": env_id}, 
+                filename,
+                header={"t_start": self.t_start, "env_id": env_id},
                 extra_keys=("time_step",
                             "taskid",
                             "success",
@@ -76,13 +79,34 @@ class RLPPAMonitor(VecEnvWrapper):
                             "distance_to_goal",
                             "initial_pos",
                             "subgoal_pos",
-                            'action_is_goal')
+                            'action_is_goal_pos',
+                            'time_in_mujoco',
+                            'total_time_subgoal',
+                            'time_subgoalstep_s')
             )
         elif not os.path.isfile(filename):
+            with open(filename + ".csv",mode="w",newline="") as file:
+              writer = csv.writer(file)
+              writer.writerow(["r",
+                            "l",
+                            "t",
+                            "time_step",
+                            "taskid",
+                            "success",
+                            "time_ppa_ns",
+                            "no_A_path_times",
+                            "time_trunctuated",
+                            "distance_to_goal",
+                            "initial_pos",
+                            "subgoal_pos",
+                            "action_is_goal_pos",
+                            'time_in_mujoco',
+                            'total_time_subgoal',
+                               'time_subgoalstep_s'])
             # create new file
             self.results_writer = ResultsWriter(
-                filename, 
-                header={"t_start": self.t_start, "env_id": env_id}, 
+                filename,
+                header={"t_start": self.t_start, "env_id": env_id},
                 extra_keys=("time_step",
                             "taskid",
                             "success",
@@ -92,13 +116,16 @@ class RLPPAMonitor(VecEnvWrapper):
                             "distance_to_goal",
                             "initial_pos",
                             "subgoal_pos",
-                            'action_is_goal')
+                            "action_is_goal_pos",
+                            'time_in_mujoco',
+                            'total_time_subgoal',
+                            'time_subgoalstep_s')
             )
         else:
             # append to existing logging file
             self.results_writer = ResultsWriter(
-                filename, 
-                header={"t_start": self.t_start, "env_id": env_id}, 
+                filename,
+                header={"t_start": self.t_start, "env_id": env_id},
                 extra_keys=("time_step",
                             "taskid",
                             "success",
@@ -108,8 +135,10 @@ class RLPPAMonitor(VecEnvWrapper):
                             "distance_to_goal",
                             "initial_pos",
                             "subgoal_pos",
-                            'action_is_goal'),
-                override_existing=False
+                            "action_is_goal_pos",
+                            'time_in_mujoco',
+                            'total_time_subgoal',
+                            'time_subgoalstep_s'),
             )
         self.info_keywords = info_keywords
         #added:
@@ -126,6 +155,7 @@ class RLPPAMonitor(VecEnvWrapper):
         st = time.time()
         obs, rewards, dones, infos = self.venv.step_wait()
         et = time.time()
+        self.total_time_subgoal += et - st
         self.episode_returns += rewards
         self.episode_lengths += 1
         new_infos = list(infos[:])
@@ -140,14 +170,12 @@ class RLPPAMonitor(VecEnvWrapper):
                 episode_return = self.episode_returns[i]
                 episode_length = self.episode_lengths[i]
                 if self.multi_env:
-                    #print("obs", pretty_obs(obs[i]))
                     task_id = onehot_to_task_id(obs[i][-self.num_tasks:])
-                    #print("task_id", task_id, " one_hot: ", pretty_obs(obs[i])["one_hot_task"])
-                    episode_info = {"r": episode_return, 
-                                    "l": episode_length, 
+                    episode_info = {"r": episode_return,
+                                    "l": episode_length,
                                     "t": round(time.time() - self.t_start, 6),
                                     "time_step": et-st,
-                                    "taskid": task_id, 
+                                    "taskid": task_id,
                                     "success": self.successes[i],
                                     "time_ppa_ns": info['time_in_ppa'],
                                     "no_A_path_times": info['number_no_A_path'],
@@ -155,10 +183,34 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "distance_to_goal": info['distance_to_goal'],
                                     "initial_pos": info['initial_pos'],
                                     "subgoal_pos": info['subgoal_pos'],
-                                    'action_is_goal': info['action_is_goal']}
+                                    "action_is_goal_pos": info['action_is_goal_pos'],
+                                    'time_in_mujoco': info['time_in_mujoco'],
+                                    'total_time_subgoal': self.total_time_subgoal,
+                                    'time_subgoalstep_s': info['time_subgoalstep_s']}
+                    with open(self.filename + ".csv", mode="a", newline="") as file:
+                        writer = csv.writer([
+                                    episode_return,
+                                    episode_length,
+                                    round(time.time() - self.t_start, 6),
+                                    et-st,
+                                    task_id,
+                                    self.successes[i],
+                                    info['time_in_ppa'],
+                                    info['number_no_A_path'],
+                                    info["TimeLimit.truncated"],
+                                    info['distance_to_goal'],
+                                    info['initial_pos'],
+                                    info['subgoal_pos'],
+                                    info['action_is_goal_pos'],
+                                    info['time_in_mujoco'],
+                                    self.total_time_subgoal,
+                                    info['time_subgoalstep_s']
+                        ])
+                        writer.writerow(episode_info)
+                        file.flush()
                 else:
-                    episode_info = {"r": episode_return, 
-                                    "l": episode_length, 
+                    episode_info = {"r": episode_return,
+                                    "l": episode_length,
                                     "t": round(time.time() - self.t_start, 6),
                                     "time_step": et-st,
                                     "success": self.successes[i],
@@ -168,7 +220,30 @@ class RLPPAMonitor(VecEnvWrapper):
                                     "distance_to_goal": info['distance_to_goal'],
                                     "initial_pos": info['initial_pos'],
                                     "subgoal_pos": info['subgoal_pos'],
-                                    'action_is_goal': info['action_is_goal']}
+                                    "action_is_goal_pos": info['action_is_goal_pos'],
+                                    'time_in_mujoco': info['time_in_mujoco'],
+                                    'total_time_subgoal': self.total_time_subgoal,
+                                    'time_subgoalstep_s': info['time_subgoalstep_s']}
+                    with open(self.filename + ".csv", mode="a", newline="") as file:
+                        writer = csv.writer([
+                                    episode_return,
+                                    episode_length,
+                                    round(time.time() - self.t_start, 6),
+                                    et-st,
+                                    self.successes[i],
+                                    info['time_in_ppa'],
+                                    info['number_no_A_path'],
+                                    info["TimeLimit.truncated"],
+                                    info['distance_to_goal'],
+                                    info['initial_pos'],
+                                    info['subgoal_pos'],
+                                    info['action_is_goal_pos'],
+                                    info['time_in_mujoco'],
+                                    self.total_time_subgoal,
+                                    info['time_subgoalstep_s']
+                        ])
+                        writer.writerow(episode_info)
+                        file.flush()
                 # print(info)
                 for key in self.info_keywords:
                     episode_info[key] = info[key]
@@ -179,8 +254,54 @@ class RLPPAMonitor(VecEnvWrapper):
                 if self.results_writer:
                     self.results_writer.write_row(episode_info)
                 new_infos[i] = info
-                # if success is logged in enviroment, then set 0 again
+                # if success is logged in environment, then set 0 again
                 self.successes[i] = 0
+            else:
+                info = infos[i].copy()
+                # print time info
+                if self.multi_env:
+                    with open(self.filename + ".csv", mode="a", newline="") as file:
+                        writer = csv.writer([
+                            0,
+                            0,
+                            round(time.time() - self.t_start, 6),
+                            et-st,
+                            task_id,
+                            0,
+                            info['time_in_ppa'],
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            info['time_in_mujoco'],
+                            self.total_time_subgoal,
+                            info['time_subgoalstep_s']
+                       ])
+                        writer.writerow(episode_info)
+                        file.flush()
+                else:
+                    with open(self.filename + ".csv", mode="a", newline="") as file:
+                        writer = csv.writer([
+                            0,
+                            0,
+                            round(time.time() - self.t_start, 6),
+                            et-st,
+                            0,
+                            info['time_in_ppa'],
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            info['time_in_mujoco'],
+                            self.total_time_subgoal,
+                            info['time_subgoalstep_s']
+                        ])
+                        writer.writerow(episode_info)
+                        file.flush()
         return obs, rewards, dones, new_infos
 
     def close(self) -> None:

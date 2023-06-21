@@ -1,4 +1,4 @@
-# from gym.wrappers import Monitor
+# from gymnasium.wrappers import Monitor
 from typing import Tuple
 
 from stable_baselines3 import PPO
