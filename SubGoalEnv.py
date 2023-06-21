@@ -111,7 +111,7 @@ class SubGoalEnv(gymnasium.Env):
     def _change_obs(self, obs) -> [float]:
         # if obstacle env change obs
         if self.env_name == "obstacle_env":
-            return obs["observation"]
+            return obs
         # if normal env just return obs
         if self.number_of_one_hot_tasks <= 1:
             return obs
@@ -189,8 +189,8 @@ class SubGoalEnv(gymnasium.Env):
                 self.func_render_subactions()
 
         if self.env_name == "obstacle_env":
-            gripper_pos = obs["observation"][:3]
-            obstacles = Obstacles(pretty_obs(obs["observation"]), self.env.dt)
+            gripper_pos = obs[:3]
+            obstacles = Obstacles(pretty_obs(obs), self.env.dt)
             max_it = 100
         else:
             obstacles = None
@@ -207,9 +207,9 @@ class SubGoalEnv(gymnasium.Env):
                 gripper_pos - sub_goal_pos) > 0.005 and max_it > 0:  # changed this as teleporting looses accuracy
             if self.env_name == "obstacle_env":
                 # when obstacle env calculate sub_actions again after every step
-                gripper_pos = obs["observation"][:3]
+                gripper_pos = obs[:3]
                 step_size = 0.033
-                obstacles = Obstacles(pretty_obs(obs["observation"]), self.env.dt)
+                obstacles = Obstacles(pretty_obs(obs), self.env.dt)
                 if self.teleporting:
                     # measure time spend in A* Search
                     st = time.time()
@@ -245,13 +245,13 @@ class SubGoalEnv(gymnasium.Env):
                         sub_actions = [[0, 0, 0, -1]]
                     obs, reward, done, info = self.env.step(sub_actions[0])
                     self.func_render_subactions()
-                gripper_pos = obs["observation"][:3]
+                gripper_pos = obs[:3]
 
             else:
                 # if dist > step_size * 15 (due to setting max node depth to 15) then do not use reach
                 # else just calculate it ones
                 # changed this as teleporting looses accuracy and we would unnecessary teleport to the same place multiple times
-                gripper_pos = obs["observation"][:3]  # gripper_pos = self.env.tcp_center
+                gripper_pos = obs[:3]  # gripper_pos = self.env.tcp_center
                 step_size = 0.01
                 # measure the time spend in A* Search
                 if self.teleporting:
@@ -288,7 +288,7 @@ class SubGoalEnv(gymnasium.Env):
                     for i, a in enumerate(sub_actions):
                         obs, reward, done, info = self.env.step(a)
                         self.func_render_subactions()
-                gripper_pos = obs["observation"][:3]  # gripper_pos = self.env.tcp_center
+                gripper_pos = obs[:3]  # gripper_pos = self.env.tcp_center
 
             max_it -= 1
         # close gripper if pick action

@@ -87,7 +87,7 @@ class NormalStepEnv(gymnasium.Env):
 
     def new_obs(self, obs):
         if self.env_name == "obstacle_env":
-            return obs["observation"]
+            return obs
         po = pretty_obs(obs)
         x = po['gripper_pos']
         x = np.append(x, po['first_obj'])
