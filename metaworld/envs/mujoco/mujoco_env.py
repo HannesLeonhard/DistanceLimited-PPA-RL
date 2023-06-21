@@ -2,7 +2,7 @@ import abc
 import warnings
 
 import glfw
-from gym import error
+from gymnasium import error
 from gymnasium.utils import seeding
 import numpy as np
 from os import path
