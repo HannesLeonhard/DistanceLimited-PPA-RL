@@ -168,6 +168,7 @@ class SubGoalEnv(gymnasium.Env):
         return 0
 
     def step(self, action):
+        start_step = time.time()
         # get kind of action: "hold"=0, "grasp"=1
         action_type = 0
         gripper_closed = True
@@ -197,12 +198,11 @@ class SubGoalEnv(gymnasium.Env):
             gripper_pos = self.env.tcp_center
             max_it = 3
         # init total time spend in ppa with 0
-        time_in_ppa = st = numbers_no_path_found = 0
+        time_in_ppa = st = numbers_no_path_found = time_in_mujoco = 0
         # tell info the inital distance between gripper and goal
         distance_to_goal = np.linalg.norm(gripper_pos - sub_goal_pos)
         initial_pos = gripper_pos
         # if it did not reach completely do again
-        original_pos = gripper_pos
         while np.linalg.norm(
                 gripper_pos - sub_goal_pos) > 0.005 and max_it > 0:  # changed this as teleporting looses accuracy
             if self.env_name == "obstacle_env":
@@ -226,7 +226,9 @@ class SubGoalEnv(gymnasium.Env):
                         break
                     if sub_actions is None:
                         sub_actions = [[0, 0, 0, -1]]
+                    st = time.time()
                     obs, reward, done, info = self.env.step(sub_actions[0])
+                    time_in_mujoco += time.time() - st
                 else:
                     # measure time spend in A* Search
                     st = time.time()
@@ -243,8 +245,10 @@ class SubGoalEnv(gymnasium.Env):
                         break
                     if sub_actions is None:
                         sub_actions = [[0, 0, 0, -1]]
+                    st = time.time()
                     obs, reward, done, info = self.env.step(sub_actions[0])
                     self.func_render_subactions()
+                    time_in_mujoco += time.time() - st
                 gripper_pos = obs[:3]
 
             else:
@@ -262,16 +266,16 @@ class SubGoalEnv(gymnasium.Env):
                                            obstacles=obstacles,
                                            env_dimension=self.env_dimension,
                                            step_size=step_size)
-                    original_pos = gripper_pos
                     time_in_ppa += time.time() - st
-                    temp = gripper_pos
                     if not sub_actions:
                         numbers_no_path_found += 1
                     if sub_actions is None:
                         sub_actions = [[0, 0, 0, -1]]
                     for i, a in enumerate(sub_actions):
+                        st = time.time()
                         obs, reward, done, info = self.env.step(a)
                         self.func_render_subactions()
+                        time_in_mujoco += time.time() - st
                 else:
                     st = time.time()
                     sub_actions = reach(current_pos=gripper_pos,
@@ -286,16 +290,20 @@ class SubGoalEnv(gymnasium.Env):
                     if sub_actions is None:
                         sub_actions = [[0, 0, 0, -1]]
                     for i, a in enumerate(sub_actions):
+                        st = time.time()
                         obs, reward, done, info = self.env.step(a)
                         self.func_render_subactions()
+                        time_in_mujoco += time.time() - st
                 gripper_pos = obs[:3]  # gripper_pos = self.env.tcp_center
 
             max_it -= 1
         # close gripper if pick action
         if action_type == 1 and self.env_name != "obstacle_env":
             for i in range(15):
+                st = time.time()
                 obs, reward, done, info = self.env.step([0, 0, 0, 1])
                 self.func_render_subactions()
+                time_in_mujoco += time.time() - st
         # tell info how much time we spend in A*
         info['time_in_ppa'] = time_in_ppa
         # tell info how many times A* could not find a path
@@ -303,7 +311,7 @@ class SubGoalEnv(gymnasium.Env):
         info['distance_to_goal'] = distance_to_goal
         info['initial_pos'] = initial_pos
         info['subgoal_pos'] = sub_goal_pos
-        info['action_is_goal'] = action_is_goal
+        info['action_is_goal_pos'] = action_is_goal
         # calculate reward
         reward, done = self._calculate_reward(reward, info, )
         self.number_steps += 1
@@ -313,6 +321,8 @@ class SubGoalEnv(gymnasium.Env):
             done = True
         else:
             info["TimeLimit.truncated"] = 0
+        info['time_in_mujoco'] = time_in_mujoco
+        info['time_subgoalstep_s'] = time.time() - start_step
         # TODO: Come up with meaningul values for terminated and truncated
         # terminated (bool) – Whether the agent reaches the terminal state (as defined under the MDP of the task)
         # which can be positive or negative. An example is reaching the goal state or moving into the lava from the
