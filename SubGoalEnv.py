@@ -139,7 +139,7 @@ class SubGoalEnv(gymnasium.Env):
     def render(self, mode="human"):
         self.env.render()
 
-    def reset(self):
+    def reset(self, **kwargs):
         super().reset(seed=123)
         if self.env_name != "obstacle_env":
             if self.cur_task_index >= len(self.tasks):
