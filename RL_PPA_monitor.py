@@ -5,7 +5,6 @@ import os
 import csv
 
 import numpy as np
-from SubGoalEnv import pretty_obs
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvObs, VecEnvStepReturn, VecEnvWrapper
 
 # Compied from Vector Monitor and changed
