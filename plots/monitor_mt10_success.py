@@ -19,6 +19,8 @@ def review_success_rate(file_name: str):
                  'button-press-topdown-v2', 'peg-insert-side-v2', 'window-open-v2', 'window-close-v2']):
             filter_monitor = monitor[:, 4] == index
             filtered_monitor = monitor[filter_monitor]
+            filter_monitor = filtered_monitor[:, 5] != -1
+            filtered_monitor = monitor[filter_monitor]
             print(5 * "-" + f"Task {title}" + 5 * "-")
             print_kpis(filtered_monitor, 1000)
         # free memory up
