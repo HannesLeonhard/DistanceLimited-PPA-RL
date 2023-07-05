@@ -9,11 +9,10 @@ def review_success_rate(file_name: str):
         # prep the data
         raw_data['time_trunctuated'] = np.where(raw_data['time_trunctuated'] == "True", 1., 0.)
         raw_data['r'] = np.where(raw_data['r'] == '-', -20, raw_data['r'])
-        raw_data['r'] = np.nan_to_num(raw_data['r'], nan=0)
         raw_data['r'] = raw_data['r'].astype(float)
         # max step size is 3 (max_it) * 15 (max node depth) * 0.01 * (step size) which is =0.45
         raw_data['distance_too_large'] = np.where(raw_data['distance_to_goal'] > 0.45, 1.0, 0.0)
-        monitor: ndarray = np.asarray(raw_data.drop(['initial_pos', 'subgoal_pos'], axis=1), dtype=np.float32)
+        monitor: ndarray = np.asarray(raw_data.drop(['initial_pos', 'subgoal_pos', 'time_in_mujoco'], axis=1), dtype=np.float32)
         for index, title in enumerate(
                 ['reach-v2', 'push-v2', 'pick-place-v2', 'door-open-v2', 'drawer-open-v2', 'drawer-close-v2',
                  'button-press-topdown-v2', 'peg-insert-side-v2', 'window-open-v2', 'window-close-v2']):
